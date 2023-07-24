@@ -145,11 +145,30 @@ def generate_data(theta_max, N_data, n_mask_layer):
         data.append(psi)
         labels.append(label)
     
-    return {'state':np.array(data), 'label':np.array(labels)}
+    return ({'state':np.array(data), 'label':np.array(labels)})
+
+
+def generate_data_alteredGekko(theta_max, N_data, n_mask_layer):
+    L = 8 + 2*(n_mask_layer+1)
+    data = []
+    labels = []
+    phases = [0,1,2]
+    
+    fixed_points = [ fixed_point_wavefunc(L, phases[0]), 
+                    fixed_point_wavefunc(L, phases[1]),
+                    fixed_point_wavefunc(L, phases[2])]
+    
+    for n in range(N_data):
+        label = np.random.choice(phases)
+        pairing = np.random.randint(2)
+        #pairing = 0
+        psi = apply_symmetric_layers(theta_max, fixed_points[label], n_mask_layer, pairing)
+        data.append(psi)
+        labels.append(label)
+    
+    return data, labels
   
-
-
-
+  
 def process_state(batch):
    
     states = batch['state'].astype(jnp.complex128)
@@ -261,6 +280,21 @@ def trace_out(psi):
   
     return jnp.diag(output.reshape((2**Nq_out, 2**Nq_out)))
    
+
+def trace_out_alteredGekko(psi): 
+    L_phys = 8
+    L = len(psi.shape)
+    
+    Nq_out = 8  # num of qubits for readout, need to customize
+    
+    # trace out unmeasured qubits
+    traced_ind = [0, 1, 2, 11, 12, 13]
+    # traced_ind = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+    output = jnp.tensordot( psi, psi.conjugate(), [traced_ind, traced_ind] )
+  
+    return jnp.diag(output.reshape((2**Nq_out, 2**Nq_out)))
+    # return output
+
     
 @jit
 def get_basis():
